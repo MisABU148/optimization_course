@@ -288,8 +288,7 @@ void interiorPointMethod(vector<vector<double>> A, vector<double> b,
         bool inequlities_are_true = true;
         double difference = 0;
 
-        for (int i = 0; i < m; ++i)
-        {
+        for (int i = 0; i < m; ++i) {
             double r = 0;
             for (int j = 0; j < n; ++j)
             {
@@ -304,7 +303,7 @@ void interiorPointMethod(vector<vector<double>> A, vector<double> b,
         if (!inequlities_are_true)
         {
             cout << "The method is not applicable!" << endl;
-            break;
+            return;
         }
 
         // Calculate and print optimum
