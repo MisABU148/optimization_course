@@ -327,36 +327,47 @@ void interiorPointMethod(vector<vector<double>> A, vector<double> b,
     cout << endl << "Optimum = " << optimum << endl;
 }
 
+// Global variables to check if the problem has a solution
 bool is_appl = 1;
-int n = 4, m = 8;
-double A[4][8] {};
+int n = 4, m = 8;  // Default number of rows and columns in matrix A
+double A[4][8] {}; // Matrix to store Simplex tableau data
 
+// Perform a single iteration of the Simplex method
 bool Simplex_method_iteration() {
-    double A1[4][8] {};
+    double A1[4][8] {}; // Temporary matrix to store updated values after pivoting
     double mn = 0;
-    int enter = 0, leave=0;
-    for (int i = 1; i<m-1; i++) {
-        if (A[0][i]<mn) {
+    int enter = 0, leave = 0;
+
+    // Find entering variable by selecting the most negative coefficient in the objective row
+    for (int i = 1; i < m - 1; i++) {
+        if (A[0][i] < mn) {
             mn = A[0][i];
             enter = i;
         }
     }
+
+    // If no negative coefficient is found, the optimal solution is reached
     if (mn == 0)
         return 1;
 
     mn = 1000000;
-    for (int i = 1; i<n; i++) {
-        if (A[i][enter]>0 && A[i][m-1]/A[i][enter] < mn) {
-            mn = A[i][m-1] / A[i][enter];
+
+    // Determine the leaving variable by minimum ratio test
+    for (int i = 1; i < n; i++) {
+        if (A[i][enter] > 0 && A[i][m - 1] / A[i][enter] < mn) {
+            mn = A[i][m - 1] / A[i][enter];
             leave = A[i][0];
         }
     }
+
+    // If all entries in the entering column are <= 0, the problem is unbounded
     if (mn == 1000000) {
         is_appl = 0;
         return 1;
     }
 
-    for (int i = 1; i<n; i++){
+    // Update the basic variable in the leaving row
+    for (int i = 1; i < n; i++) {
         if (A[i][0] == leave) {
             A[i][0] = enter;
             leave = i;
@@ -364,23 +375,22 @@ bool Simplex_method_iteration() {
         }
     }
 
-
-
-    for (int i = 0; i<n; i++) {
+    // Perform pivoting to update matrix A for the next iteration
+    for (int i = 0; i < n; i++) {
         if (A[i][0] == enter) {
             A1[i][0] = enter;
-            for (int j = 1; j<m;j++) {
+            for (int j = 1; j < m; j++) {
                 if (A[i][enter] != 0)
-                    A1[i][j] = A[i][j] / A[i][enter];
+                    A1[i][j] = A[i][j] / A[i][enter];  // Normalize pivot row
                 else
                     A1[i][j] = 0;
             }
             continue;
         }
         A1[i][0] = A[i][0];
-        for (int j = 1; j<m; j++) {
+        for (int j = 1; j < m; j++) {
             if (j == enter) {
-                A1[i][j] = (i == enter)?1:0;
+                A1[i][j] = (i == enter) ? 1 : 0;  // Set column of entering variable
             } else {
                 if (A[i][enter] != 0)
                     A1[i][j] = A[i][j] - (A[i][enter] * A[leave][j] / A[leave][enter]);
@@ -390,8 +400,9 @@ bool Simplex_method_iteration() {
         }
     }
 
-    for (int i = 0; i < n;i++) {
-        for (int j = 0; j < m;j++) {
+    // Copy updated values from A1 back to A
+    for (int i = 0; i < n; i++) {
+        for (int j = 0; j < m; j++) {
             A[i][j] = A1[i][j];
         }
     }
@@ -399,85 +410,95 @@ bool Simplex_method_iteration() {
     return 0;
 }
 
-bool Simplex_method(vector<vector<double>> A_initial, vector<double> b,
-                    vector<double> c) {
-    for (int i = 0; i < n-1;i++) {
+// Main function for the Simplex method that iterates until an optimal solution is found
+bool Simplex_method(vector<vector<double>> A_initial, vector<double> b, vector<double> c) {
+    // Initialize the objective function coefficients (first row in tableau)
+    for (int i = 0; i < n - 1; i++) {
         c.push_back(0);
-        A[0][i+1] = -c[i];
+        A[0][i + 1] = -c[i];
     }
 
-    for (int i = 1; i < n;i++) {
-        for (int j = 1; j < m-1;j++) {
-            A[i][j] = A_initial[i-1][j-1];
+    // Initialize constraints in the tableau
+    for (int i = 1; i < n; i++) {
+        for (int j = 1; j < m - 1; j++) {
+            A[i][j] = A_initial[i - 1][j - 1];
         }
     }
 
-    for (int i = 0; i < n-1;i++) {
-        A[i+1][m-1] = b[i];
-        A[i+1][0] = i+4;
+    // Set the right-hand side values and initial basic variables
+    for (int i = 0; i < n - 1; i++) {
+        A[i + 1][m - 1] = b[i];
+        A[i + 1][0] = i + 4;  // Assign initial basis variables
     }
 
+    // Iterate Simplex method until optimal solution or unbounded condition is found
     while (!Simplex_method_iteration()) {}
 
+    // Check if the problem is feasible and display the result
     if (is_appl) {
         cout << endl << "Answer for Simplex method: " << endl
-        << "A vector of decision variables - x: ";
-        for (int i = 1; i < n;i++) {
+             << "A vector of decision variables - x: ";
+        for (int i = 1; i < n; i++) {
             int in_ans = 0;
-            for (int j = 1; j < n;j++) {
+            for (int j = 1; j < n; j++) {
                 if (A[j][0] == i) {
-                    cout << A[j][m-1] << ' ';
+                    cout << A[j][m - 1] << ' ';
                     in_ans = 1;
                     break;
                 }
             }
-            if(!in_ans)
+            if (!in_ans)
                 cout << 0 << ' ';
         }
-        cout << endl << "Optimum = " << A[0][m-1];
+        cout << endl << "Optimum = " << A[0][m - 1];
     } else {
-        cout << "The problem does not have solution!";
+        cout << "The problem does not have a solution!";
     }
-
 }
 
 int main()
 {
-    int n = 3, m = 6;
+    int n = 3, m = 6; // Set dimensions for user input problem
     double num;
-    vector<double> c;
+    vector<double> c; // Vector to hold objective function coefficients
     cout << "Enter the coefficients for the function F for x1, x2, x3:";
-    for (int i = 0; i < 3;i++) {
+    for (int i = 0; i < 3; i++) {
         cin >> num;
         c.push_back(num);
     }
-    vector<vector<double>> A;
-    cout << "Enter the coefficients of the constrains for x1, x2, x3:";
-    for (int i = 0; i < n;i++) {
+
+    vector<vector<double>> A; // Matrix to hold constraint coefficients
+    cout << "Enter the coefficients of the constraints for x1, x2, x3:";
+    for (int i = 0; i < n; i++) {
         A.push_back({});
-        for (int j = 0; j < m - n;j++) {
+        for (int j = 0; j < m - n; j++) {
             cin >> num;
             A[i].push_back(num);
         }
-        for (int j = n; j < m;j++) {
-            A[i].push_back((i+3==j)?1:0);
+        for (int j = n; j < m; j++) {
+            A[i].push_back((i + 3 == j) ? 1 : 0); // Set up identity matrix for slack variables
         }
     }
-    vector<double> b;
-    cout << "Enter right hand size of constrains:";
-    for (int i = 0; i < 3;i++) {
+
+    vector<double> b; // Vector for right-hand side values of constraints
+    cout << "Enter right-hand side of constraints:";
+    for (int i = 0; i < 3; i++) {
         cin >> num;
         b.push_back(num);
     }
-    double eps;
+
+    double eps; // User input for accuracy level
     cout << "Enter the approximation accuracy:";
     cin >> eps;
+
     double alpha1 = 0.5;
     double alpha2 = 0.9;
 
+    // Run the interior point method with two different alpha values for comparison
     interiorPointMethod(A, b, c, alpha1, eps);
     interiorPointMethod(A, b, c, alpha2, eps);
 
+    // Run the Simplex method to find an optimal solution
     Simplex_method(A, b, c);
 
     return 0;
