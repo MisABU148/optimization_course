@@ -158,7 +158,7 @@ vector<vector<double>> multiplyMatrices(vector<vector<double>> A,
 
 // Interior Point Algorithm function
 void interiorPointMethod(vector<vector<double>> A, vector<double> b,
-                         vector<double> c, double alpha)
+                         vector<double> c, double alpha, double eps)
 {
     int n = c.size(); // Number of decision variables
     int m = b.size(); // Number of constraints
@@ -286,6 +286,7 @@ void interiorPointMethod(vector<vector<double>> A, vector<double> b,
         x = transpose(multiplyMatrices(D, X_tilde))[0];
 
         bool inequlities_are_true = true;
+        double difference = 0;
 
         for (int i = 0; i < m; ++i)
         {
@@ -296,28 +297,29 @@ void interiorPointMethod(vector<vector<double>> A, vector<double> b,
 //                cout << A_initial[i][j] << " * " << x[j] << "  +  ";
             }
 //            cout << endl;
+            difference = max(difference, (b[i] - r));
             inequlities_are_true = r < b[i];
 //            cout << r << " < " << b[i] << " -> " << is_less << endl;
         }
         if (!inequlities_are_true)
         {
-            cout << "Constraints are not satisfied, the end of iterations" << endl;
+            cout << "The method is not applicable!" << endl;
             break;
         }
 
         // Calculate and print optimum
         optimum = 0;
-//        cout << "new X: ";
         for (int i = 0; i < n; ++i)
         {
-//            cout << x[i] << " ";
             optimum += x[i] * c[i];
         }
-//        cout << endl
-//             << "OPTIMUM = " << optimum << endl;
+        if (difference <= eps) {
+            break;
+        }
     }
 
-    cout << endl << "Answer for Interior-Point algorithm when a = " << alpha << " :" << endl;
+    cout << endl << "Answer for Interior-Point algorithm when a = " << alpha << ":" << endl
+        << "A vector of decision variables - x: ";
     for (int i = 0; i < n; ++i)
     {
         cout << x[i] << " ";
@@ -326,10 +328,10 @@ void interiorPointMethod(vector<vector<double>> A, vector<double> b,
 }
 
 bool is_appl = 1;
+int n = 4, m = 8;
+double A[4][8] {};
 
-bool Simplex_method(vector<vector<double>> A, vector<double> b,
-                    vector<double> c) {
-    int n = A.size(), m = A[0].size();
+bool Simplex_method_iteration() {
     double A1[4][8] {};
     double mn = 0;
     int enter = 0, leave=0;
@@ -397,40 +399,29 @@ bool Simplex_method(vector<vector<double>> A, vector<double> b,
     return 0;
 }
 
-int main()
-{
-    int n = 3, m = 6;
-    double num;
-    vector<double> c;
-    for (int i = 0; i < 3;i++) {
-        cin >> num;
-        c.push_back(num);
+bool Simplex_method(vector<vector<double>> A_initial, vector<double> b,
+                    vector<double> c) {
+    for (int i = 0; i < n-1;i++) {
+        c.push_back(0);
+        A[0][i+1] = -c[i];
     }
-    vector<vector<double>> A;
-    for (int i = 0; i < n;i++) {
-        A.push_back({});
-        for (int j = 0; j < m;j++) {
-            cin >> num;
-            A[i].push_back(num);
+
+    for (int i = 1; i < n;i++) {
+        for (int j = 1; j < m-1;j++) {
+            A[i][j] = A_initial[i-1][j-1];
         }
     }
-    vector<double> b;
-    for (int i = 0; i < 3;i++) {
-        cin >> num;
-        b.push_back(num);
+
+    for (int i = 0; i < n-1;i++) {
+        A[i+1][m-1] = b[i];
+        A[i+1][0] = i+4;
     }
-    double eps;
-    cin >> eps;
-    double alpha1 = 0.5;
-    double alpha2 = 0.9;
 
-    interiorPointMethod(A, b, c, alpha1);
-    interiorPointMethod(A, b, c, alpha2);
-
-    while (!Simplex_method(A, b, c)) {}
+    while (!Simplex_method_iteration()) {}
 
     if (is_appl) {
-        cout << endl << "Answer for Simplex method :" << endl;
+        cout << endl << "Answer for Simplex method: " << endl
+        << "A vector of decision variables - x: ";
         for (int i = 1; i < n;i++) {
             int in_ans = 0;
             for (int j = 1; j < n;j++) {
@@ -443,11 +434,51 @@ int main()
             if(!in_ans)
                 cout << 0 << ' ';
         }
-        cout << endl <<
-            "Optimum = " << A[0][m-1];
+        cout << endl << "Optimum = " << A[0][m-1];
     } else {
-        cout << "The method is not applicable!";
+        cout << "The problem does not have solution!";
     }
+
+}
+
+int main()
+{
+    int n = 3, m = 6;
+    double num;
+    vector<double> c;
+    cout << "Enter the coefficients for the function F for x1, x2, x3:";
+    for (int i = 0; i < 3;i++) {
+        cin >> num;
+        c.push_back(num);
+    }
+    vector<vector<double>> A;
+    cout << "Enter the coefficients of the constrains for x1, x2, x3:";
+    for (int i = 0; i < n;i++) {
+        A.push_back({});
+        for (int j = 0; j < m - n;j++) {
+            cin >> num;
+            A[i].push_back(num);
+        }
+        for (int j = n; j < m;j++) {
+            A[i].push_back((i+3==j)?1:0);
+        }
+    }
+    vector<double> b;
+    cout << "Enter right hand size of constrains:";
+    for (int i = 0; i < 3;i++) {
+        cin >> num;
+        b.push_back(num);
+    }
+    double eps;
+    cout << "Enter the approximation accuracy:";
+    cin >> eps;
+    double alpha1 = 0.5;
+    double alpha2 = 0.9;
+
+    interiorPointMethod(A, b, c, alpha1, eps);
+    interiorPointMethod(A, b, c, alpha2, eps);
+
+    Simplex_method(A, b, c);
 
     return 0;
 }
