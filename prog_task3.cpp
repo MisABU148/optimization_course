@@ -5,6 +5,32 @@
 
 using namespace std;
 
+// Function to display the initial data in table format
+void displayInitialData(const vector<int>& S, const vector<vector<int>>& C, const vector<int>& D) {
+    int s = S.size(), d = D.size();
+
+    cout << "Initial Data Table:" << endl;
+    cout << setw(9) << "Supply" << " | ";
+    for (int j = 0; j < d; j++) {
+        cout << setw(5) << "D" << j + 1 << " ";
+    }
+    cout << endl;
+
+    for (int i = 0; i < s; i++) {
+        cout<< "S" << i + 1 << " = " << setw(4) << S[i] << " | ";
+        for (int j = 0; j < d; j++) {
+            cout << setw(6) << C[i][j] << " ";
+        }
+        cout << endl;
+    }
+
+    cout << setw(9) <<"Demands" << " | ";
+    for (int j = 0; j < d; j++) {
+        cout << setw(6) << D[j] << " ";
+    }
+    cout << endl << endl;
+}
+
 int Vogel_iteration(vector<int>& S, vector<vector<int>>& C, vector<int>& D, vector<int>& X) {
     int s = S.size(), d = D.size();
     int max_dif = 0, min_row = -1, min_col = -1;
@@ -88,44 +114,18 @@ void Vogel(vector<int> S, vector<vector<int>> C, vector<int> D) {
     }
 
     // Output results
-    cout << "Vogel's Approximation Method:" << endl;
+    cout << endl << "Vogel's Approximation Method:" << endl;
     for (int i = 0; i < x.size(); i += 3) {
-        cout << "x_" << x[i] << x[i+1] << " = " << x[i+2] << ' ';
+        cout << "x_" << x[i] << x[i+1] << " = " << x[i+2] << "; ";
     }
     cout << endl << "Total distribution cost: " << total_cost << endl;
 }
 
-// Function to display the initial data in table format
-void displayInitialData(const vector<int>& S, const vector<vector<int>>& C, const vector<int>& D) {
-    int s = S.size(), d = D.size();
-
-    cout << "Initial Data Table:" << endl;
-    cout << setw(9) << "Supply" << " | ";
-    for (int j = 0; j < d; j++) {
-        cout << setw(4) << "D" << j + 1 << " ";
-    }
-    cout << endl;
-
-    for (int i = 0; i < s; i++) {
-        cout<< "S" << i + 1 << " = " << setw(4) << S[i] << " | ";
-        for (int j = 0; j < d; j++) {
-            cout << setw(6) << C[i][j] << " ";
-        }
-        cout << endl;
-    }
-
-    cout << setw(9) <<"Demands" << " | ";
-    for (int j = 0; j < d; j++) {
-        cout << setw(6) << D[j] << " ";
-    }
-    cout << endl << endl;
-}
-
-int Russell_iteration(vector<int>& S, vector<vector<int>>& C, vector<int>& D) {
+int Russell_iteration(vector<int>& S, vector<vector<int>>& C, vector<int>& D, vector<int>& allocations) {
     int s = S.size(), d = D.size();
     vector<int> u(s), v(d);
 
-    // Compute u_i = min_j c_ij for each row i
+    // Compute u_i = max_j c_ij for each row i
     for (int i = 0; i < s; i++) {
         int max_c = 0;
         for (int j = 0; j < d; j++) {
@@ -134,10 +134,9 @@ int Russell_iteration(vector<int>& S, vector<vector<int>>& C, vector<int>& D) {
             }
         }
         u[i] = max_c;
-//        cerr << "U[" << i << "] = " << u[i] << "\n";
     }
 
-    // Compute v_j = min_i c_ij for each column j
+    // Compute v_j = max_i c_ij for each column j
     for (int j = 0; j < d; j++) {
         int max_c = 0;
         for (int i = 0; i < s; i++) {
@@ -146,7 +145,6 @@ int Russell_iteration(vector<int>& S, vector<vector<int>>& C, vector<int>& D) {
             }
         }
         v[j] = max_c;
-//        cerr << "V[" << j << "] = " << v[j] << "\n";
     }
 
     // Compute modified costs c_ij' = c_ij - u_i - v_j
@@ -156,7 +154,6 @@ int Russell_iteration(vector<int>& S, vector<vector<int>>& C, vector<int>& D) {
     for (int i = 0; i < s; i++) {
         for (int j = 0; j < d; j++) {
             int modified_cost = C[i][j] - u[i] - v[j];
-//            cerr << modified_cost << " ";
             if (modified_cost < 0) {
                 int opportunity_cost = -modified_cost;
                 if (opportunity_cost > max_opportunity_cost) {
@@ -166,9 +163,7 @@ int Russell_iteration(vector<int>& S, vector<vector<int>>& C, vector<int>& D) {
                 }
             }
         }
-//        cerr << "\n";
     }
-//    cerr << "--\n";
 
     // If no negative modified cost, select the cell with minimum c_ij
     if (selected_i == -1) {
@@ -187,6 +182,11 @@ int Russell_iteration(vector<int>& S, vector<vector<int>>& C, vector<int>& D) {
     // Allocate as much as possible to cell (selected_i, selected_j)
     int amount = min(S[selected_i], D[selected_j]);
     int cost = amount * C[selected_i][selected_j];
+
+    // Record allocation for output
+    allocations.push_back(selected_i + 1);  // row (1-based)
+    allocations.push_back(selected_j + 1);  // column (1-based)
+    allocations.push_back(amount);          // allocated amount
 
     // Adjust supplies and demands
     S[selected_i] -= amount;
@@ -209,14 +209,56 @@ int Russell_iteration(vector<int>& S, vector<vector<int>>& C, vector<int>& D) {
     return cost;
 }
 
-int Russell(vector<int> S, vector<vector<int>> C, vector<int> D) {
+void Russell(vector<int> S, vector<vector<int>> C, vector<int> D) {
     int total_cost = 0;
+    vector<int> allocations;
+
+    cout << endl << "Russell's approximation method allocations:\n";
+
     while (!S.empty() && !D.empty()) {
-        total_cost += Russell_iteration(S, C, D);
+        total_cost += Russell_iteration(S, C, D, allocations);
     }
-    return total_cost;
+
+    // Output each allocation in the specified format
+    for (int i = 0; i < allocations.size(); i += 3) {
+        cout << "x_" << allocations[i] << allocations[i + 1] << " = " << allocations[i + 2] << "; ";
+    }
+
+    cout << "\nTotal distribution cost: " << total_cost << "\n";
 }
 
+void northWest(vector<vector<int>> C, vector<int> S, vector<int> D) {
+    int currentX = 0;
+    int currentY = 0;
+    double totalCost = 0;
+
+    cout << "Northwest Corner method:\n";
+
+    while (currentY < S.size() && currentX < D.size()) {
+        // Determine the minimum value between the current row's supply and the current column's demand
+        int minValue = min(S[currentY], D[currentX]);
+
+        // Print the current allocation
+        cout << "x_" << currentY + 1 << currentX + 1 << " = " << minValue << "; ";
+
+        // Increase the total cost by the product of the cost and the allocated amount
+        totalCost += C[currentY][currentX] * minValue;
+
+        // Subtract the allocated amount from the current supply and demand
+        S[currentY] -= minValue;
+        D[currentX] -= minValue;
+
+        // Move to the next column or row if one of them is depleted
+        if (S[currentY] == 0) {
+            currentY++;  // Move to the next row
+        }
+        if (D[currentX] == 0) {
+            currentX++;  // Move to the next column
+        }
+    }
+
+    cout << "\nTotal distribution cost: " << totalCost << "\n";
+}
 
 int main() {
     int s = 3, d = 4;
@@ -250,11 +292,13 @@ int main() {
     // Display the initial data table
     displayInitialData(S, C, D);
 
+    northWest(C, S, D);
+
     //Volgel`s approximation
     Vogel(S, C, D);
 
     //Russell`s approximation
-    cout << Russell(S, C, D);
+    Russell(S, C, D);
 
     return 0;
 }
