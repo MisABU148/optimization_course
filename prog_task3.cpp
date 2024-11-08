@@ -114,7 +114,7 @@ void Vogel(vector<int> S, vector<vector<int>> C, vector<int> D) {
     }
 
     // Output results
-    cout << endl << "Vogel's Approximation Method:" << endl;
+    cout << endl << "Vogel's approximation Method:" << endl;
     for (int i = 0; i < x.size(); i += 3) {
         cout << "x_" << x[i] << x[i+1] << " = " << x[i+2] << "; ";
     }
